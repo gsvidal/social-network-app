@@ -7,3 +7,17 @@
     margin: 30px;
   }
 }
+
+.post-content {
+  display: block;
+  width: 100%;
+}
+
+.button {
+  width: 60px;
+  margin: 15px 0;
+}
+
+.nav-item {
+  cursor: pointer;
+}

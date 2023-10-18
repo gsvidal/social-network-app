@@ -15,14 +15,15 @@ class Post(models.Model):
     content = models.CharField(max_length=400)
     date = models.DateTimeField(default=timezone.now)
     poster = models.ForeignKey(User, on_delete=models.CASCADE)
-
+    
 # Like
 class Like(models.Model):
     id = models.AutoField(primary_key=True)
     liker = models.ForeignKey(User, on_delete=models.CASCADE)
+    post = models.ForeignKey(Post, on_delete=models.CASCADE)
 
 # Follower
 class Follow(models.Model):
     id = models.AutoField(primary_key=True)
-    follower = models.ForeignKey(User, on_delete=models.CASCADE)
-    followed = models.ForeignKey(User, on_delete=models.CASCADE)
+    followed = models.ForeignKey(User, on_delete=models.CASCADE, related_name='followers')
+    follower = models.ForeignKey(User, on_delete=models.CASCADE, related_name='following')
