@@ -8,6 +8,11 @@ import json
 
 from .models import User, Post
 
+def is_user_authenticated(request):
+    if request.user.is_authenticated:
+        return JsonResponse({'is_authenticated': True})
+    else:
+        return JsonResponse({'is_authenticated': False})
 
 def index(request):
     return render(request, "network/index.html")

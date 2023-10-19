@@ -1,3 +1,9 @@
+const isUserAuth = async () => {
+  const response = await fetch("/api/auth");
+  const { is_authenticated } = await response.json();
+  return is_authenticated;
+};
+
 document.addEventListener("DOMContentLoaded", () => {
   AllPostsPage("all-posts");
 
@@ -7,53 +13,63 @@ document.addEventListener("DOMContentLoaded", () => {
   allPostsNavElement.addEventListener("click", () => {
     AllPostsPage("all-posts");
   });
-  FollowingNavElement.addEventListener("click", () => {
+  FollowingNavElement?.addEventListener("click", () => {
     AllPostsPage("following");
   });
 });
 
 // TODO: ProfilePage()
 
+const postItem = (post) => {
+  const postContainer = document.createElement("div");
+  postContainer.className = "post-container";
+
+  const poster = document.createElement("a");
+  poster.textContent = post.poster;
+  poster.className = "poster";
+  poster.setAttribute("href", `/api/profile/${poster}`);
+  poster.addEventListener("click", () => {
+    ProfilePage("profile-page");
+  });
+
+  const editButton = document.createElement("button");
+  editButton.textContent = "Edit post";
+  editButton.className = "btn btn-outline-info button button--edit";
+
+  const postContent = document.createElement("p");
+  postContent.textContent = post.content;
+
+  const postDate = document.createElement("p");
+  const postFormattedDate = new Date(post.date);
+  
+  const options = {
+    weekday: "short",
+    year: "numeric",
+    month: "short",
+    day: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+  };
+
+  postDate.textContent = postFormattedDate.toLocaleString(undefined, options);
+
+  const likesCount = document.createElement("span");
+  likesCount.textContent = post.likes;
+
+  postContainer.append(poster, editButton, postContent, postDate, likesCount);
+  document.querySelector(".main-page")?.append(postContainer);
+};
+
 const fetchPosts = (page) => {
   fetch(`/api/posts/${page}`)
     .then((response) => response.json())
     .then(({ posts }) => {
       if (posts.length > 0) {
-        posts.forEach((post) => {
-          const postContainer = document.createElement("div");
-
-          const poster = document.createElement("a");
-          poster.textContent = post.poster;
-          poster.setAttribute("href", `/api/profile/${poster}`);
-          poster.addEventListener("click", () => {
-            ProfilePage("profile-page");
-          });
-
-          const editButton = document.createElement("button");
-          editButton.textContent = "Edit";
-
-          const postContent = document.createElement("p");
-          postContent.textContent = post.content;
-
-          const postDate = document.createElement("p");
-          postDate.textContent = post.date;
-
-          const likesCount = document.createElement("span");
-          likesCount.textContent = post.likes;
-
-          postContainer.append(
-            poster,
-            editButton,
-            postContent,
-            postDate,
-            likesCount
-          );
-          document.querySelector(".main-page").append(postContainer);
-        });
+        posts.forEach((post) => postItem(post));
       } else {
-        document
-          .querySelector(".main-page")
-          .append((document.createElement("p").textContent = "No posts yet"));
+        const emptyPosts = (document.createElement("p").textContent =
+          "No posts yet");
+        document.querySelector(".main-page")?.append(emptyPosts);
       }
     });
 };
@@ -78,7 +94,7 @@ const ErrorMsg = (error) => {
   const postButton = document.querySelector("#new-post-button");
   const errorMsg = document.createElement("p");
   errorMsg.textContent = error;
-  errorMsg.className = "error-msg"
+  errorMsg.className = "error-msg";
 
   postButton.insertAdjacentElement("afterend", errorMsg);
 };
@@ -132,22 +148,29 @@ const NewPostForm = () => {
   const newPostSubmitInput = document.createElement("input");
   newPostSubmitInput.setAttribute("value", "Post");
   newPostSubmitInput.setAttribute("type", "submit");
-  newPostSubmitInput.className = "btn btn-primary button";
+  newPostSubmitInput.className = "btn btn-info button";
   newPostSubmitInput.id = "new-post-button";
 
   newPostForm.append(newPostLabel, newPostTextarea, newPostSubmitInput);
 
-  document.querySelector(".main-page").append(newPostForm);
+  document.querySelector(".main-page")?.append(newPostForm);
 };
 
-const AllPostsPage = (page) => {
+const AllPostsPage = async (page) => {
   const heading = document.createElement("h1");
   heading.textContent = `${page.replace("-", " ").charAt(0).toUpperCase()}${page
     .replace("-", " ")
     .slice(1)}`;
 
-  document.querySelector(".main-page").innerHTML = "";
-  document.querySelector(".main-page").append(heading);
-  NewPostForm();
+  const mainPageElement = document.querySelector(".main-page");
+  if (mainPageElement) {
+    mainPageElement.innerHTML = "";
+    mainPageElement.append(heading);
+  }
+
+  const isAuth = await isUserAuth();
+  if (isAuth) {
+    NewPostForm();
+  }
   fetchPosts(page);
 };
