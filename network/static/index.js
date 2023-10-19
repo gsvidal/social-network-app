@@ -41,7 +41,7 @@ const postItem = (post) => {
 
   const postDate = document.createElement("p");
   const postFormattedDate = new Date(post.date);
-  
+
   const options = {
     weekday: "short",
     year: "numeric",
@@ -53,10 +53,36 @@ const postItem = (post) => {
 
   postDate.textContent = postFormattedDate.toLocaleString(undefined, options);
 
-  const likesCount = document.createElement("span");
-  likesCount.textContent = post.likes;
+  const likeContainer = document.createElement("div");
+  likeContainer.className = "like-container";
 
-  postContainer.append(poster, editButton, postContent, postDate, likesCount);
+  const likeIcon = document.createElement("span");
+  likeIcon.className = "like-icon";
+
+  likeIcon.addEventListener("click", () => {
+    if (!likeIcon.classList.contains("liked")) {
+      likeIcon.classList.add("liked");
+    } else {
+      likeIcon.classList.remove("liked");
+      likeIcon.classList.add("broken");
+      setTimeout(() => {
+        likeIcon.classList.remove("broken");
+      }, 500);
+    }
+  });
+
+  const likeCounter = document.createElement("span");
+  likeCounter.textContent = post.likes;
+
+  likeContainer.append(likeIcon, likeCounter);
+
+  postContainer.append(
+    poster,
+    editButton,
+    postContent,
+    postDate,
+    likeContainer
+  );
   document.querySelector(".main-page")?.append(postContainer);
 };
 

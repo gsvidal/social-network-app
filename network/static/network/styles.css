@@ -82,6 +82,63 @@ h1 {
   padding-bottom: 4px;
 }
 
+.like-container {
+  width: 40px;
+  display: flex;
+  align-items: center;
+}
+
+.like-icon {
+  display: inline-block;
+  width: 20px;
+  height: 20px;
+  margin-top: 1px;
+  margin-right: 4px;
+  background: url("../icons/heart.svg") center/cover no-repeat;
+  filter: invert(19%) sepia(99%) saturate(5628%) hue-rotate(359deg)
+    brightness(104%) contrast(125%);
+  transition: background-image 0.5s linear;
+  cursor: pointer;
+}
+.like-icon.liked {
+  background: url("../icons/heart-filled.svg") center/cover no-repeat;
+  animation: liking 0.5s ease-in forwards;
+}
+.like-icon.broken {
+  background: url("../icons/heart-broken.svg") center/cover no-repeat;
+  animation: shaking 0.5s ease-in forwards;
+}
+
+@keyframes liking {
+  0% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.1);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+@keyframes shaking {
+  0% {
+    transform: translateX(0px);
+  }
+  25% {
+    transform: translateX(-3px);
+  }
+  50% {
+    transform: translateX(3px);
+  }
+  75% {
+    transform: translateX(-2px);
+  }
+  100% {
+    transform: translateX(0px);
+  }
+}
+
 .nav-item {
   cursor: pointer;
 }
