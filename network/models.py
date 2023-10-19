@@ -14,7 +14,7 @@ class Post(models.Model):
     id = models.AutoField(primary_key=True)
     content = models.CharField(max_length=400)
     date = models.DateTimeField(default=timezone.now)
-    poster = models.ForeignKey(User, on_delete=models.CASCADE)
+    poster = models.ForeignKey(User, on_delete=models.CASCADE, related_name="posts")
     
 # Like
 class Like(models.Model):

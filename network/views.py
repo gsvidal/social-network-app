@@ -5,12 +5,13 @@ from django.http import HttpResponse, HttpResponseRedirect, JsonResponse
 from django.shortcuts import render
 from django.urls import reverse
 import json
+from django.core.exceptions import ObjectDoesNotExist  # Import the exception
 
-from .models import User, Post
+from .models import User, Post, Follow
 
 def is_user_authenticated(request):
     if request.user.is_authenticated:
-        return JsonResponse({'is_authenticated': True})
+        return JsonResponse({'is_authenticated': True, 'user_id': request.user.id})
     else:
         return JsonResponse({'is_authenticated': False})
 
@@ -37,21 +38,89 @@ def new_post(request):
     return JsonResponse({"message": "Post created successfully."}, status=201)
 
 
-def main_page(request, page):
-     if page == "all-posts":
+def posts(request, page, poster_id):
+    if page == "all-posts":
         posts = Post.objects.all().order_by('-date')
-        post_data = []
-        for post in posts:
-            likes = post.like_set.count()  # Count the number of likes for each post
-            post_data.append({
-                "id": post.id,
-                "content": post.content,
-                "date": post.date,
-                "poster": post.poster.username,  # Get the username of the poster
-                "likes": likes,  # Include the number of likes
-            })
+    elif page == "profile-page":
+        try:
+            posts = User.objects.get(pk=poster_id).posts.order_by('-date')
+        except:
+            return render(request, '404.html')
+    else: 
+        return JsonResponse({'error': "The page you're looking for, doesn't exist"})
+    
+    post_data = []
+    for post in posts:
+        likes = post.like_set.count()  # Count the number of likes for each post
+        post_data.append({
+            "id": post.id,
+            "content": post.content,
+            "date": post.date,
+            "poster": post.poster.username,  # Get the username of the poster
+            "poster_id": post.poster.id,
+            "likes": likes,  # Include the number of likes
+        })
+    
+    return JsonResponse({"posts": post_data}, status=200)
+     
+def profile_page(request, poster_id):
+    if User.objects.get(pk=poster_id) is None:
+        return JsonResponse({'error': "The profile of this user doesn't exist"}, status=400)
+
+    profile_user = User.objects.get(pk=poster_id)
+    followers = profile_user.followers.count()
+    followings = profile_user.following.count()
+    auth_user_is_poster = profile_user == request.user
+
+    follower = request.user
+    followed = User.objects.get(pk=poster_id)
+    try:
+        follow = Follow.objects.get(followed=followed, follower=follower)
+        is_following = True
+    except ObjectDoesNotExist:
+        is_following = False
+
+    user_posts_count = profile_user.posts.count()
+
+    profile_data = {
+        'username': profile_user.username,
+        'posts_count': user_posts_count,
+        'followers': followers, 
+        'followings': followings, 
+        'auth_user_is_poster': auth_user_is_poster, 'is_following': is_following,
+        }
+
+    print(f"profile_data: {profile_data}")
+
+    return JsonResponse({'profile_data': profile_data}, status=200)
+
+def following(request, poster_id):
+    try:
+        data = json.loads(request.body)
+        action = data.get("action")
+
+        follower = request.user
+        followed = User.objects.get(pk=poster_id)
+
         
-        return JsonResponse({"posts": post_data}, status=201)
+        if action == "follow":
+            follow = Follow(followed=followed, follower=follower)
+            follow.save()
+            is_following = True
+
+        elif action == "unfollow":
+            follow_to_delete = Follow.objects.get(followed=followed, follower=follower)
+            if follow_to_delete is not None:
+                follow_to_delete.delete()
+                is_following = False
+            else:
+                return JsonResponse({"error": "Couldn't unfollow this user, try again"}, status=400)
+            
+        print(f"is following?: {is_following}")
+
+        return JsonResponse({'is_following': is_following})
+    except:
+        return JsonResponse({"error": "Couldn't follow this user, try again"}, status=400)
 
 
 def login_view(request):

@@ -1,35 +1,167 @@
 const isUserAuth = async () => {
   const response = await fetch("/api/auth");
-  const { is_authenticated } = await response.json();
-  return is_authenticated;
+  const { is_authenticated, user_id } = await response.json();
+  return { is_authenticated, user_id };
 };
 
 document.addEventListener("DOMContentLoaded", () => {
-  AllPostsPage("all-posts");
+  MainPage("all-posts");
 
   const allPostsNavElement = document.querySelector("#all-posts-nav");
   const FollowingNavElement = document.querySelector("#following-nav");
+  const usernameNavBar = document.querySelector("#nav-link-username");
+
+  const checkUser = async () => {
+    console.log("checkuser");
+    if (usernameNavBar) {
+      const { user_id } = await isUserAuth();
+      console.log("user_id: ", user_id);
+      usernameNavBar.addEventListener("click", () => {
+        document.querySelector(".profile-page").innerHTML = "";
+        fetchProfileData(user_id);
+      });
+    }
+  };
+  checkUser();
 
   allPostsNavElement.addEventListener("click", () => {
-    AllPostsPage("all-posts");
+    MainPage("all-posts");
   });
   FollowingNavElement?.addEventListener("click", () => {
-    AllPostsPage("following");
+    MainPage("following");
   });
 });
 
-// TODO: ProfilePage()
+const fetchProfileData = (posterId) => {
+  fetch(`/api/profile/${posterId}`)
+    .then((response) => {
+      if (!response.ok) {
+        return response.json().then((errorData) => {
+          throw new Error(errorData.error);
+        });
+      } else {
+        return response.json();
+      }
+    })
+    .then(({ profile_data }) => {
+      console.log(profile_data);
+      ProfilePage(profile_data, posterId);
+    })
+    .catch((error) => console.log(error));
+};
 
-const postItem = (post) => {
+const sendFollowing = (action, posterId) => {
+  console.log(action, posterId);
+  const csrftoken = getCookie("csrftoken");
+
+  fetch(`/api/following/${posterId}`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "X-CSRFToken": csrftoken, // Include the CSRF token in the headers
+    },
+    body: JSON.stringify({
+      action: action,
+    }),
+  })
+    .then((response) => {
+      if (!response.ok) {
+        return response.json().then((errorData) => {
+          throw new Error(errorData.error);
+        });
+      } else {
+        return response.json();
+      }
+    })
+    .then(({ is_following }) => {
+      const followButton = document.querySelector(".button--profile");
+      followButton.textContent = is_following ? "Unfollow" : "Follow";
+    })
+    .then(() => {
+      document.querySelector(".profile-page").innerHTML = "";
+      fetchProfileData(posterId);
+    })
+    .catch((error) => console.log(error));
+};
+
+const followingUser = (action, posterId) => {
+  sendFollowing(action, posterId);
+};
+
+const ProfilePage = (profile_data, posterId) => {
+  console.log("is following: ", profile_data.is_following);
+  document.querySelector(".main-page").style.display = "none";
+  document.querySelector(".profile-page").style.display = "block";
+
+  const userAvatar = document.createElement("img");
+  userAvatar.className = "user-avatar";
+  userAvatar.setAttribute("src", "");
+  userAvatar.setAttribute("width", "100");
+  userAvatar.setAttribute("height", "100");
+  userAvatar.setAttribute("alt", "User Avatar");
+
+  const userDataContainer = document.createElement("section");
+  userDataContainer.className = "user-data-container";
+
+  const userMainData = document.createElement("div");
+  userMainData.className = "user-data user-data--main";
+
+  const username = document.createElement("p");
+  username.className = "user-data-item";
+  username.innerHTML = `<strong>${profile_data.username}</strong>`;
+
+  if (!profile_data.auth_user_is_poster) {
+    const followButton = document.createElement("button");
+    followButton.className = "btn btn-info button--profile";
+    followButton.textContent = profile_data.is_following
+      ? "Unfollow"
+      : "Follow";
+
+    followButton.addEventListener("click", () => {
+      const action = !profile_data.is_following ? "follow" : "unfollow";
+      followingUser(action, posterId);
+    });
+
+    userMainData.append(username, followButton);
+  } else {
+    userMainData.append(username);
+  }
+
+  const userFollowData = document.createElement("div");
+  userFollowData.className = "user-data user-data--follow";
+
+  const postCount = document.createElement("p");
+  postCount.className = "user-data-item";
+  postCount.innerHTML = `<strong>${profile_data.posts_count}</strong> posts`;
+
+  const followers = document.createElement("p");
+  followers.className = "user-data-item";
+  followers.innerHTML = `<strong>${profile_data.followers}</strong> followers`;
+
+  const followings = document.createElement("p");
+  followings.className = "user-data-item";
+  followings.innerHTML = `<strong>${profile_data.followings}</strong> following`;
+
+  userFollowData.append(postCount, followers, followings);
+
+  userDataContainer.append(userAvatar, userMainData, userFollowData);
+
+  document.querySelector(".profile-page").append(userDataContainer);
+
+  fetchPosts("profile-page", posterId);
+};
+
+const postItem = (post, page) => {
   const postContainer = document.createElement("div");
   postContainer.className = "post-container";
 
-  const poster = document.createElement("a");
+  const poster = document.createElement("span");
   poster.textContent = post.poster;
   poster.className = "poster";
-  poster.setAttribute("href", `/api/profile/${poster}`);
   poster.addEventListener("click", () => {
-    ProfilePage("profile-page");
+    document.querySelector(".main-page").innerHTML = ""
+    document.querySelector(".profile-page").innerHTML = ""
+    fetchProfileData(post.poster_id);
   });
 
   const editButton = document.createElement("button");
@@ -83,19 +215,35 @@ const postItem = (post) => {
     postDate,
     likeContainer
   );
-  document.querySelector(".main-page")?.append(postContainer);
+
+  document
+    .querySelector(`${page !== "profile-page" ? ".main-page" : "." + page}`)
+    ?.append(postContainer);
 };
 
-const fetchPosts = (page) => {
-  fetch(`/api/posts/${page}`)
+const fetchPosts = (page, posterId = 0) => {
+  fetch(`/api/posts/${page}/${posterId}`)
     .then((response) => response.json())
     .then(({ posts }) => {
       if (posts.length > 0) {
-        posts.forEach((post) => postItem(post));
+        let filtered_posts = structuredClone(posts);
+        console.log(filtered_posts);
+
+        if (page === "profile-page") {
+          filtered_posts = posts.filter(
+            (post) => parseInt(post.poster_id) === parseInt(posterId)
+          );
+          console.log(filtered_posts);
+        }
+        posts.forEach((post) => postItem(post, page));
       } else {
         const emptyPosts = (document.createElement("p").textContent =
           "No posts yet");
-        document.querySelector(".main-page")?.append(emptyPosts);
+        document
+          .querySelector(
+            `${page !== "profile-page" ? ".main-page" : "." + page}`
+          )
+          ?.append(emptyPosts);
       }
     });
 };
@@ -123,6 +271,9 @@ const ErrorMsg = (error) => {
   errorMsg.className = "error-msg";
 
   postButton.insertAdjacentElement("afterend", errorMsg);
+  setTimeout(() => {
+    errorMsg.remove();
+  }, 1500);
 };
 
 const sendNewPost = (formData) => {
@@ -148,7 +299,7 @@ const sendNewPost = (formData) => {
       }
     })
     .then((result) => {
-      AllPostsPage("all-posts");
+      MainPage("all-posts");
     })
     .catch((error) => {
       ErrorMsg(error);
@@ -182,7 +333,10 @@ const NewPostForm = () => {
   document.querySelector(".main-page")?.append(newPostForm);
 };
 
-const AllPostsPage = async (page) => {
+const MainPage = async (page) => {
+  document.querySelector(".main-page").style.display = "block";
+  document.querySelector(".profile-page").style.display = "none";
+
   const heading = document.createElement("h1");
   heading.textContent = `${page.replace("-", " ").charAt(0).toUpperCase()}${page
     .replace("-", " ")
@@ -194,8 +348,8 @@ const AllPostsPage = async (page) => {
     mainPageElement.append(heading);
   }
 
-  const isAuth = await isUserAuth();
-  if (isAuth) {
+  const { is_authenticated } = await isUserAuth();
+  if (is_authenticated) {
     NewPostForm();
   }
   fetchPosts(page);
