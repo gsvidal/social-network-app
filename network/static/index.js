@@ -25,9 +25,9 @@ document.addEventListener("DOMContentLoaded", () => {
   allPostsNavElement.addEventListener("click", () => {
     MainPage("all-posts");
   });
-  
+
   FollowingNavElement?.addEventListener("click", () => {
-    console.log("following")
+    console.log("following");
     MainPage("following");
   });
 });
@@ -119,7 +119,11 @@ const ProfilePage = (profile_data, posterId) => {
 
     followButton.addEventListener("click", () => {
       const action = !profile_data.is_following ? "follow" : "unfollow";
-      followingUser(action, posterId);
+      if (profile_data.is_user_auth) {
+        followingUser(action, posterId);
+      } else {
+        window.location.href = "/login";
+      }
     });
 
     userMainData.append(username, followButton);
@@ -159,8 +163,8 @@ const postItem = (post, page) => {
   poster.textContent = post.poster;
   poster.className = "poster";
   poster.addEventListener("click", () => {
-    document.querySelector(".main-page").innerHTML = ""
-    document.querySelector(".profile-page").innerHTML = ""
+    document.querySelector(".main-page").innerHTML = "";
+    document.querySelector(".profile-page").innerHTML = "";
     fetchProfileData(post.poster_id);
   });
 

@@ -87,7 +87,9 @@ def posts(request, page, poster_id):
     return JsonResponse({"posts": post_data}, status=200)
      
 def profile_page(request, poster_id):
-    if User.objects.get(pk=poster_id) is None:
+    try:
+        profile_user = User.objects.get(pk=poster_id)
+    except User.DoesNotExist:
         return JsonResponse({'error': "The profile of this user doesn't exist"}, status=400)
 
     profile_user = User.objects.get(pk=poster_id)
@@ -95,22 +97,31 @@ def profile_page(request, poster_id):
     followings = profile_user.following.count()
     auth_user_is_poster = profile_user == request.user
 
-    follower = request.user
-    followed = User.objects.get(pk=poster_id)
-    try:
-        follow = Follow.objects.get(followed=followed, follower=follower)
-        is_following = True
-    except ObjectDoesNotExist:
+      # Check if the user is authenticated
+    if request.user.is_authenticated:
+        follower = request.user
+        followed = profile_user
+
+        try:
+            follow = Follow.objects.get(followed=followed, follower=follower)
+            is_following = True
+        except Follow.DoesNotExist:
+            is_following = False
+    else:
         is_following = False
 
     user_posts_count = profile_user.posts.count()
+    print(f"is_auth user following this profile?: {is_following}")
+
 
     profile_data = {
         'username': profile_user.username,
         'posts_count': user_posts_count,
         'followers': followers, 
         'followings': followings, 
-        'auth_user_is_poster': auth_user_is_poster, 'is_following': is_following,
+        'auth_user_is_poster': auth_user_is_poster, 
+        'is_following': is_following,
+        'is_user_auth': request.user.is_authenticated
         }
 
     print(f"profile_data: {profile_data}")
