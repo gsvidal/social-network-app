@@ -7,6 +7,8 @@ from django.urls import reverse
 import json
 from django.core.exceptions import ObjectDoesNotExist  # Import the exception
 from django.db.models import Q
+from django.core.paginator import Paginator,EmptyPage
+
 
 
 from .models import User, Post, Follow
@@ -41,18 +43,17 @@ def new_post(request):
 
 
 def posts(request, page, poster_id):
+    page_number = request.GET.get('page', 1)
+    posts_per_page = 10
+
     if page == "all-posts":
         posts = Post.objects.all().order_by('-date')
     elif page == "following":
-        # posts = Post.objects.filter().order_by('-date')
         try:
             follows = Follow.objects.filter(follower=request.user)
             following_ids = []
             for follow in follows:
                 following_ids.append(follow.followed.id)
-
-
-            print(f"follow id : {following_ids}")
 
             # Create a Q object to combine the conditions
             q = Q(pk__in=following_ids)
@@ -72,19 +73,37 @@ def posts(request, page, poster_id):
     else: 
         return JsonResponse({'error': "The page you're looking for, doesn't exist"}, status=400)
     
+    paginator = Paginator(posts, posts_per_page)
+
+    try:
+        page_posts = paginator.page(page_number)
+    except EmptyPage:
+        page_posts = paginator.page(1)  # Handle out-of-range pages by returning the first page
+
+    total_pages = paginator.num_pages
+    print(f"total pages:; {total_pages}")
+    print(f"has previous; {page_posts.has_previous()}")
+    print(f"has next; {page_posts.has_next()}")
+    # print(f"posts count:  {posts.count()}")
+
     post_data = []
-    for post in posts:
+    for post in page_posts:
         likes = post.like_set.count()  # Count the number of likes for each post
-        post_data.append({
+        post_data.append({ 
             "id": post.id,
             "content": post.content,
             "date": post.date,
             "poster": post.poster.username,  # Get the username of the poster
             "poster_id": post.poster.id,
             "likes": likes,  # Include the number of likes
+            
         })
     
-    return JsonResponse({"posts": post_data}, status=200)
+    posts_info = {"posts": post_data, "total_pages": total_pages,
+            'has_previous': page_posts.has_previous(),
+            'has_next': page_posts.has_next()}
+    
+    return JsonResponse({'posts_info': posts_info}, status=200)
      
 def profile_page(request, poster_id):
     print("before post")

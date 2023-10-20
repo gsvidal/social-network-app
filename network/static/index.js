@@ -4,6 +4,8 @@ const isUserAuth = async () => {
   return { is_authenticated, user_id };
 };
 
+let currentPage = 1;
+
 document.addEventListener("DOMContentLoaded", () => {
   MainPage("all-posts");
 
@@ -74,7 +76,7 @@ const sendFollowing = (action, posterId) => {
       }
     })
     .then(({ profile_data }) => {
-      document.querySelector('.profile-page').innerHTML = ""
+      document.querySelector(".profile-page").innerHTML = "";
       ProfilePage(profile_data, posterId);
     })
 
@@ -149,11 +151,12 @@ const ProfilePage = (profile_data, posterId) => {
   userDataContainer.append(userAvatar, userMainData, userFollowData);
 
   document.querySelector(".profile-page").append(userDataContainer);
-
-  fetchPosts("profile-page", posterId);
+  const postsContainer = document.createElement("section");
+  document.querySelector(".profile-page").append(postsContainer);
+  fetchPosts("profile-page", postsContainer, currentPage, posterId);
 };
 
-const postItem = (post, page) => {
+const postItem = (post, postsContainer) => {
   const postContainer = document.createElement("div");
   postContainer.className = "post-container";
 
@@ -218,17 +221,74 @@ const postItem = (post, page) => {
     likeContainer
   );
 
-  document
-    .querySelector(`${page !== "profile-page" ? ".main-page" : "." + page}`)
-    ?.append(postContainer);
+  postsContainer.append(postContainer);
 };
 
-const fetchPosts = (page, posterId = 0) => {
-  fetch(`/api/posts/${page}/${posterId}`)
+const PaginationButtons = (postsContainer) => {
+  const paginationButtons = document.createElement("div");
+  paginationButtons.className = "button-pagination-container";
+
+  const previousButton = document.createElement("button");
+  previousButton.className =
+    "btn btn-info button-pagination button-pagination--previous";
+
+  const previousPaginationIcon = document.createElement("span");
+  previousPaginationIcon.className =
+    "pagination-icon pagination--icon--previous";
+
+  previousButton.append(previousPaginationIcon);
+  previousButton.append("Prev");
+
+  const pageInfo = document.createElement("span");
+  pageInfo.className = "page-info";
+
+  const nextButton = document.createElement("button");
+  nextButton.className =
+    "btn btn-info button-pagination button-pagination--next";
+
+  const nextPaginationIcon = document.createElement("span");
+  nextPaginationIcon.className = "pagination-icon pagination-icon--next";
+
+  nextButton.append("Next");
+  nextButton.append(nextPaginationIcon);
+
+  paginationButtons.append(previousButton, pageInfo, nextButton);
+
+  postsContainer.insertAdjacentElement("afterbegin", paginationButtons);
+
+  return { previousButton, pageInfo, nextButton };
+};
+
+const fetchPosts = (page, postsContainer, pageNumber, posterId = 0) => {
+  console.log("ready to fetch");
+  fetch(`/api/posts/${page}/${posterId}?page=${pageNumber}`)
     .then((response) => response.json())
-    .then(({ posts }) => {
-      if (posts.length > 0) {
-        posts.forEach((post) => postItem(post, page));
+    .then(({ posts_info }) => {
+      if (posts_info.posts.length > 0) {
+        postsContainer.innerHTML = "";
+        posts_info.posts.forEach((post) =>
+          postItem(post, postsContainer)
+        );
+        const { previousButton, pageInfo, nextButton } =
+          PaginationButtons(postsContainer);
+        currentPage = pageNumber;
+        previousButton.disabled = !posts_info.has_previous;
+        nextButton.disabled = !posts_info.has_next;
+
+        pageInfo.innerHTML = `Page <strong>${pageNumber}</strong> of ${posts_info.total_pages}`;
+
+        // Event listeners for pagination controls
+        previousButton.addEventListener("click", () => {
+          if (currentPage > 1) {
+            fetchPosts(page, postsContainer, currentPage - 1, posterId);
+          }
+        });
+
+        nextButton.addEventListener("click", () => {
+          if (currentPage < posts_info.total_pages) {
+            fetchPosts(page, postsContainer, currentPage + 1, posterId);
+          }
+        });
       } else {
         const emptyPosts = (document.createElement("p").textContent =
           "No posts yet");
@@ -318,7 +378,7 @@ const NewPostForm = () => {
   const newPostSubmitInput = document.createElement("input");
   newPostSubmitInput.setAttribute("value", "Post");
   newPostSubmitInput.setAttribute("type", "submit");
-  newPostSubmitInput.className = "btn btn-info button";
+  newPostSubmitInput.className = "btn btn-info button button--post";
   newPostSubmitInput.id = "new-post-button";
 
   newPostForm.append(newPostLabel, newPostTextarea, newPostSubmitInput);
@@ -345,5 +405,8 @@ const MainPage = async (page) => {
   if (is_authenticated && page === "all-posts") {
     NewPostForm();
   }
-  fetchPosts(page);
+  const postsContainer = document.createElement("section");
+  document.querySelector(".main-page").append(postsContainer);
+
+  fetchPosts(page, postsContainer, currentPage);
 };
