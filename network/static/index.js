@@ -54,7 +54,7 @@ const sendFollowing = (action, posterId) => {
   console.log(action, posterId);
   const csrftoken = getCookie("csrftoken");
 
-  fetch(`/api/following/${posterId}`, {
+  fetch(`/api/profile/${posterId}`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
@@ -73,14 +73,11 @@ const sendFollowing = (action, posterId) => {
         return response.json();
       }
     })
-    .then(({ is_following }) => {
-      const followButton = document.querySelector(".button--profile");
-      followButton.textContent = is_following ? "Unfollow" : "Follow";
+    .then(({ profile_data }) => {
+      document.querySelector('.profile-page').innerHTML = ""
+      ProfilePage(profile_data, posterId);
     })
-    .then(() => {
-      document.querySelector(".profile-page").innerHTML = "";
-      fetchProfileData(posterId);
-    })
+
     .catch((error) => console.log(error));
 };
 
@@ -89,7 +86,6 @@ const followingUser = (action, posterId) => {
 };
 
 const ProfilePage = (profile_data, posterId) => {
-  console.log("is following: ", profile_data.is_following);
   document.querySelector(".main-page").style.display = "none";
   document.querySelector(".profile-page").style.display = "block";
 
@@ -112,7 +108,9 @@ const ProfilePage = (profile_data, posterId) => {
 
   if (!profile_data.auth_user_is_poster) {
     const followButton = document.createElement("button");
-    followButton.className = "btn btn-info button--profile";
+    followButton.className = `btn button--profile ${
+      profile_data.is_following ? "btn-outline-info" : "btn-info"
+    }`;
     followButton.textContent = profile_data.is_following
       ? "Unfollow"
       : "Follow";
@@ -139,7 +137,7 @@ const ProfilePage = (profile_data, posterId) => {
   postCount.innerHTML = `<strong>${profile_data.posts_count}</strong> posts`;
 
   const followers = document.createElement("p");
-  followers.className = "user-data-item";
+  followers.className = "user-data-item user-data--followers";
   followers.innerHTML = `<strong>${profile_data.followers}</strong> followers`;
 
   const followings = document.createElement("p");

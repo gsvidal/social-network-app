@@ -87,6 +87,33 @@ def posts(request, page, poster_id):
     return JsonResponse({"posts": post_data}, status=200)
      
 def profile_page(request, poster_id):
+    print("before post")
+    if request.method == "POST":
+        print("poistttttt")
+        try:
+            data = json.loads(request.body)
+            action = data.get("action")
+
+            follower = request.user
+            followed = User.objects.get(pk=poster_id)
+            
+            if action == "follow":
+                print("following start")
+                follow = Follow(followed=followed, follower=follower)
+                follow.save()
+                is_following = True
+
+            elif action == "unfollow":
+                follow_to_delete = Follow.objects.get(followed=followed, follower=follower)
+                if follow_to_delete is not None:
+                    follow_to_delete.delete()
+                    is_following = False
+                else:
+                    return JsonResponse({"error": "Couldn't unfollow this user, try again"}, status=400)
+
+        except:
+            return JsonResponse({"error": "Couldn't follow this user, try again"}, status=400)
+        
     try:
         profile_user = User.objects.get(pk=poster_id)
     except User.DoesNotExist:
@@ -104,6 +131,7 @@ def profile_page(request, poster_id):
 
         try:
             follow = Follow.objects.get(followed=followed, follower=follower)
+            print(f"follow?: {follow}")
             is_following = True
         except Follow.DoesNotExist:
             is_following = False
@@ -112,7 +140,6 @@ def profile_page(request, poster_id):
 
     user_posts_count = profile_user.posts.count()
     print(f"is_auth user following this profile?: {is_following}")
-
 
     profile_data = {
         'username': profile_user.username,
@@ -127,34 +154,6 @@ def profile_page(request, poster_id):
     print(f"profile_data: {profile_data}")
 
     return JsonResponse({'profile_data': profile_data}, status=200)
-
-def following(request, poster_id):
-    try:
-        data = json.loads(request.body)
-        action = data.get("action")
-
-        follower = request.user
-        followed = User.objects.get(pk=poster_id)
-        
-        if action == "follow":
-            follow = Follow(followed=followed, follower=follower)
-            follow.save()
-            is_following = True
-
-        elif action == "unfollow":
-            follow_to_delete = Follow.objects.get(followed=followed, follower=follower)
-            if follow_to_delete is not None:
-                follow_to_delete.delete()
-                is_following = False
-            else:
-                return JsonResponse({"error": "Couldn't unfollow this user, try again"}, status=400)
-            
-        print(f"is following?: {is_following}")
-
-        return JsonResponse({'is_following': is_following})
-    except:
-        return JsonResponse({"error": "Couldn't follow this user, try again"}, status=400)
-
 
 def login_view(request):
     if request.method == "POST":

@@ -14,5 +14,4 @@ urlpatterns = [
     path("api/posts", views.new_post, name="new_post"),
     path("api/auth", views.is_user_authenticated, name="is_user_authenticated"),
     path("api/profile/<int:poster_id>", views.profile_page, name="profile_page"),
-    path("api/following/<int:poster_id>", views.following, name="following"),
 ]
