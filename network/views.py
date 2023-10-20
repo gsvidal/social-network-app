@@ -6,6 +6,8 @@ from django.shortcuts import render
 from django.urls import reverse
 import json
 from django.core.exceptions import ObjectDoesNotExist  # Import the exception
+from django.db.models import Q
+
 
 from .models import User, Post, Follow
 
@@ -41,13 +43,34 @@ def new_post(request):
 def posts(request, page, poster_id):
     if page == "all-posts":
         posts = Post.objects.all().order_by('-date')
+    elif page == "following":
+        # posts = Post.objects.filter().order_by('-date')
+        try:
+            follows = Follow.objects.filter(follower=request.user)
+            following_ids = []
+            for follow in follows:
+                following_ids.append(follow.followed.id)
+
+
+            print(f"follow id : {following_ids}")
+
+            # Create a Q object to combine the conditions
+            q = Q(pk__in=following_ids)
+            following_users = User.objects.filter(q)
+            # Retrieve all the posts from the following_users
+            posts = Post.objects.filter(poster__in=following_users)
+
+        except ObjectDoesNotExist:
+            print("doesnt exist")
+            posts = []
+        
     elif page == "profile-page":
         try:
             posts = User.objects.get(pk=poster_id).posts.order_by('-date')
         except:
             return render(request, '404.html')
     else: 
-        return JsonResponse({'error': "The page you're looking for, doesn't exist"})
+        return JsonResponse({'error': "The page you're looking for, doesn't exist"}, status=400)
     
     post_data = []
     for post in posts:
@@ -101,7 +124,6 @@ def following(request, poster_id):
 
         follower = request.user
         followed = User.objects.get(pk=poster_id)
-
         
         if action == "follow":
             follow = Follow(followed=followed, follower=follower)

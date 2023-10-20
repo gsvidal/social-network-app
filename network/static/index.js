@@ -12,10 +12,8 @@ document.addEventListener("DOMContentLoaded", () => {
   const usernameNavBar = document.querySelector("#nav-link-username");
 
   const checkUser = async () => {
-    console.log("checkuser");
     if (usernameNavBar) {
       const { user_id } = await isUserAuth();
-      console.log("user_id: ", user_id);
       usernameNavBar.addEventListener("click", () => {
         document.querySelector(".profile-page").innerHTML = "";
         fetchProfileData(user_id);
@@ -27,7 +25,9 @@ document.addEventListener("DOMContentLoaded", () => {
   allPostsNavElement.addEventListener("click", () => {
     MainPage("all-posts");
   });
+  
   FollowingNavElement?.addEventListener("click", () => {
+    console.log("following")
     MainPage("following");
   });
 });
@@ -226,15 +226,6 @@ const fetchPosts = (page, posterId = 0) => {
     .then((response) => response.json())
     .then(({ posts }) => {
       if (posts.length > 0) {
-        let filtered_posts = structuredClone(posts);
-        console.log(filtered_posts);
-
-        if (page === "profile-page") {
-          filtered_posts = posts.filter(
-            (post) => parseInt(post.poster_id) === parseInt(posterId)
-          );
-          console.log(filtered_posts);
-        }
         posts.forEach((post) => postItem(post, page));
       } else {
         const emptyPosts = (document.createElement("p").textContent =
@@ -349,7 +340,7 @@ const MainPage = async (page) => {
   }
 
   const { is_authenticated } = await isUserAuth();
-  if (is_authenticated) {
+  if (is_authenticated && page === "all-posts") {
     NewPostForm();
   }
   fetchPosts(page);
