@@ -20,7 +20,7 @@ class Post(models.Model):
 class Like(models.Model):
     id = models.AutoField(primary_key=True)
     liker = models.ForeignKey(User, on_delete=models.CASCADE)
-    post = models.ForeignKey(Post, on_delete=models.CASCADE)
+    post = models.ForeignKey(Post, on_delete=models.CASCADE, related_name="likes")
 
 # Follower
 class Follow(models.Model):

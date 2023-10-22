@@ -255,17 +255,58 @@ const postItem = (post, postsContainer) => {
   likeContainer.className = "like-container";
 
   const likeIcon = document.createElement("span");
-  likeIcon.className = "like-icon";
+  likeIcon.className = `like-icon ${post.is_liked_by_auth_user ? "liked" : ""}`;
 
-  likeIcon.addEventListener("click", () => {
-    if (!likeIcon.classList.contains("liked")) {
-      likeIcon.classList.add("liked");
+  const sendLiking = (likeIcon, action, postId) => {
+    const csrftoken = getCookie("csrftoken");
+
+    fetch(`/api/like_post/${postId}`, {
+      method: "PUT",
+      headers: {
+        "Content-Type": "application/json",
+        "X-CSRFToken": csrftoken, // Include the CSRF token in the headers
+      },
+      body: JSON.stringify({
+        action: action,
+      }),
+    })
+      .then((response) => {
+        if (!response.ok) {
+          return response.json().then((errorData) => {
+            throw new Error(errorData.error);
+          });
+        } else {
+          return response.json();
+        }
+      })
+      .then(({ post_likes }) => {
+        likeIcon.nextElementSibling.textContent = post_likes;
+        if (action === "like") {
+          likeIcon.classList.add("liked");
+        }
+        if (action === "unlike") {
+          likeIcon.classList.remove("liked");
+          likeIcon.classList.add("broken");
+          setTimeout(() => {
+            likeIcon.classList.remove("broken");
+          }, 500);
+        }
+      })
+      .catch((error) => {
+        ErrorMsg(likeIcon, error);
+      });
+  };
+
+  likeIcon.addEventListener("click", async () => {
+    const { is_authenticated } = await isUserAuth();
+    if (is_authenticated) {
+      if (!likeIcon.classList.contains("liked")) {
+        sendLiking(likeIcon, "like", post.id);
+      } else {
+        sendLiking(likeIcon, "unlike", post.id);
+      }
     } else {
-      likeIcon.classList.remove("liked");
-      likeIcon.classList.add("broken");
-      setTimeout(() => {
-        likeIcon.classList.remove("broken");
-      }, 500);
+      window.location.href = "/login";
     }
   });
 
@@ -439,15 +480,19 @@ const NewPostForm = () => {
 };
 
 const MainPage = async (page) => {
-  document.querySelector(".main-page").style.display = "block";
-  document.querySelector(".profile-page").style.display = "none";
+  const mainPageElement = document.querySelector(".main-page");
+  const profilePageElement = document.querySelector(".profile-page");
+
+  if (mainPageElement) {
+    mainPageElement.style.display = "block";
+    profilePageElement.style.display = "none";
+  }
 
   const heading = document.createElement("h1");
   heading.textContent = `${page.replace("-", " ").charAt(0).toUpperCase()}${page
     .replace("-", " ")
     .slice(1)}`;
 
-  const mainPageElement = document.querySelector(".main-page");
   if (mainPageElement) {
     mainPageElement.innerHTML = "";
     mainPageElement.append(heading);
@@ -458,7 +503,7 @@ const MainPage = async (page) => {
     NewPostForm();
   }
   const postsContainer = document.createElement("section");
-  document.querySelector(".main-page").append(postsContainer);
+  mainPageElement?.append(postsContainer);
 
   fetchPosts(page, postsContainer, currentPage);
 };

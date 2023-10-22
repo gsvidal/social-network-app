@@ -11,7 +11,7 @@ from django.core.paginator import Paginator,EmptyPage
 
 
 
-from .models import User, Post, Follow
+from .models import User, Post, Follow, Like
 
 def is_user_authenticated(request):
     if request.user.is_authenticated:
@@ -44,29 +44,31 @@ def posts(request, page, poster_id):
 
     if page == "all-posts":
         posts = Post.objects.all().order_by('-date')
-    elif page == "following":
-        try:
-            follows = Follow.objects.filter(follower=request.user)
-            following_ids = []
-            for follow in follows:
-                following_ids.append(follow.followed.id)
 
-            # Create a Q object to combine the conditions
-            q = Q(pk__in=following_ids)
-            following_users = User.objects.filter(q)
-            # Retrieve all the posts from the following_users
-            posts = Post.objects.filter(poster__in=following_users)
+    if request.user.is_authenticated:
+        if page == "following":
+            try:
+                follows = Follow.objects.filter(follower=request.user)
+                following_ids = []
+                for follow in follows:
+                    following_ids.append(follow.followed.id)
 
-        except ObjectDoesNotExist:
-            posts = []
-        
-    elif page == "profile-page":
-        try:
-            posts = User.objects.get(pk=poster_id).posts.order_by('-date')
-        except:
-            return render(request, '404.html')
-    else: 
-        return JsonResponse({'error': "The page you're looking for, doesn't exist"}, status=400)
+                # Create a Q object to combine the conditions
+                q = Q(pk__in=following_ids)
+                following_users = User.objects.filter(q)
+                # Retrieve all the posts from the following_users
+                posts = Post.objects.filter(poster__in=following_users)
+
+            except ObjectDoesNotExist:
+                posts = []
+            
+        elif page == "profile-page":
+            try:
+                posts = User.objects.get(pk=poster_id).posts.order_by('-date')
+            except:
+                return render(request, '404.html')
+        elif page != "all-posts": 
+            return JsonResponse({'error': "The page you're looking for, doesn't exist"}, status=404)
     
     paginator = Paginator(posts, posts_per_page)
 
@@ -79,13 +81,18 @@ def posts(request, page, poster_id):
 
     post_data = []
     for post in page_posts:
-        likes = post.like_set.count()  # Count the number of likes for each post
+        likes = post.likes.count()  # Count the number of likes for each post
+        is_post_liked = False
+        if request.user.is_authenticated:
+            is_post_liked = Like.objects.filter(liker=request.user, post=post).count() > 0
+            print(f"is liked? {is_post_liked}")
         post_data.append({ 
             "id": post.id,
             "content": post.content,
             "date": post.date,
             "poster": post.poster.username,  # Get the username of the poster
             "poster_id": post.poster.id,
+            "is_liked_by_auth_user": is_post_liked,
             "likes": likes,  # Include the number of likes
             "is_user_own_post": post.poster == request.user
         })
@@ -124,7 +131,7 @@ def profile_page(request, poster_id):
     try:
         profile_user = User.objects.get(pk=poster_id)
     except User.DoesNotExist:
-        return JsonResponse({'error': "The profile of this user doesn't exist"}, status=400)
+        return JsonResponse({'error': "The profile of this user doesn't exist"}, status=404)
 
     profile_user = User.objects.get(pk=poster_id)
     followers = profile_user.followers.count()
@@ -170,7 +177,25 @@ def edit_post(request, post_id):
         post_to_edit = Post.objects.get(pk=post_id)
         post_to_edit.content = data.get("new_content")
         post_to_edit.save()
-        return JsonResponse({"message": "Post edited successfully."}, status=201)
+        return JsonResponse({"message": "Post edited successfully."}, status=200)
+    
+
+@login_required
+def like_post(request, post_id):
+    if request.method == "PUT":
+        try:
+            data = json.loads(request.body)
+            post_to_like = Post.objects.get(pk=post_id)
+            if data.get("action") == "like":
+                like = Like(liker=request.user, post=post_to_like)
+                like.save()
+            if data.get("action") == "unlike":
+                like_to_delete = Like.objects.get(liker=request.user, post=post_to_like)
+                like_to_delete.delete()
+            return JsonResponse({"post_likes": post_to_like.likes.count()}, status=200)
+        except:
+            return JsonResponse({"error": "Couldn't like this post, try again"}, status=400)
+            
 
 
 def login_view(request):
