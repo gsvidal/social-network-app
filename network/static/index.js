@@ -46,7 +46,6 @@ const fetchProfileData = (posterId) => {
       }
     })
     .then(({ profile_data }) => {
-      console.log(profile_data);
       ProfilePage(profile_data, posterId);
     })
     .catch((error) => console.log(error));
@@ -83,10 +82,6 @@ const sendFollowing = (action, posterId) => {
     .catch((error) => console.log(error));
 };
 
-const followingUser = (action, posterId) => {
-  sendFollowing(action, posterId);
-};
-
 const ProfilePage = (profile_data, posterId) => {
   document.querySelector(".main-page").style.display = "none";
   document.querySelector(".profile-page").style.display = "block";
@@ -120,7 +115,7 @@ const ProfilePage = (profile_data, posterId) => {
     followButton.addEventListener("click", () => {
       const action = !profile_data.is_following ? "follow" : "unfollow";
       if (profile_data.is_user_auth) {
-        followingUser(action, posterId);
+        sendFollowing(action, posterId);
       } else {
         window.location.href = "/login";
       }
@@ -156,6 +151,42 @@ const ProfilePage = (profile_data, posterId) => {
   fetchPosts("profile-page", postsContainer, currentPage, posterId);
 };
 
+const saveEditPost = (content, postId, editButtonItem) => {
+  const csrftoken = getCookie("csrftoken");
+  fetch(`/api/edit_post/${postId}`, {
+    method: "PUT",
+    headers: {
+      "Content-Type": "application/json",
+      "X-CSRFToken": csrftoken, // Include the CSRF token in the headers
+    },
+    body: JSON.stringify({
+      new_content: content,
+    }),
+  })
+    .then((response) => {
+      if (!response.ok) {
+        return response.json().then((errorData) => {
+          throw new Error(errorData.error);
+        });
+      } else {
+        return response.json();
+      }
+    })
+    .then(() => {
+      editButtonItem.textContent = "Edit post";
+      editButtonItem.classList.remove("to-save");
+
+      const postContent = document.createElement("p");
+      postContent.className = "post-item-content";
+      postContent.textContent = content;
+      editButtonItem.nextElementSibling.remove();
+      editButtonItem.insertAdjacentElement("afterend", postContent);
+    })
+    .catch((error) => {
+      ErrorMsg(editButtonItem, error);
+    });
+};
+
 const postItem = (post, postsContainer) => {
   const postContainer = document.createElement("div");
   postContainer.className = "post-container";
@@ -169,11 +200,41 @@ const postItem = (post, postsContainer) => {
     fetchProfileData(post.poster_id);
   });
 
-  const editButton = document.createElement("button");
-  editButton.textContent = "Edit post";
-  editButton.className = "btn btn-outline-info button button--edit";
+  postContainer.append(poster);
+
+  if (post.is_user_own_post) {
+    const editButton = document.createElement("button");
+    editButton.textContent = "Edit post";
+    editButton.className = "btn btn-outline-info button button--edit";
+
+    let newContent = "";
+    editButton.addEventListener("click", (event) => {
+      const editButtonItem = event.target;
+      if (editButtonItem.classList.contains("to-save")) {
+        saveEditPost(newContent, post.id, event.target);
+      } else {
+        editButtonItem.classList.add("to-save");
+        editButtonItem.textContent = "Save post";
+
+        const postContentToEdit = document.createElement("textarea");
+        postContentToEdit.className = "post-content post-content--edit";
+        postContentToEdit.textContent =
+          editButtonItem.nextElementSibling.textContent;
+
+        postContentToEdit.addEventListener("input", (event) => {
+          newContent = event.target.value;
+        });
+
+        editButtonItem.nextElementSibling.remove();
+        editButton.insertAdjacentElement("afterend", postContentToEdit);
+      }
+    });
+
+    postContainer.append(editButton);
+  }
 
   const postContent = document.createElement("p");
+  postContent.className = "post-item-content";
   postContent.textContent = post.content;
 
   const postDate = document.createElement("p");
@@ -213,13 +274,7 @@ const postItem = (post, postsContainer) => {
 
   likeContainer.append(likeIcon, likeCounter);
 
-  postContainer.append(
-    poster,
-    editButton,
-    postContent,
-    postDate,
-    likeContainer
-  );
+  postContainer.append(postContent, postDate, likeContainer);
 
   postsContainer.append(postContainer);
 };
@@ -260,15 +315,12 @@ const PaginationButtons = (postsContainer) => {
 };
 
 const fetchPosts = (page, postsContainer, pageNumber, posterId = 0) => {
-  console.log("ready to fetch");
   fetch(`/api/posts/${page}/${posterId}?page=${pageNumber}`)
     .then((response) => response.json())
     .then(({ posts_info }) => {
       if (posts_info.posts.length > 0) {
         postsContainer.innerHTML = "";
-        posts_info.posts.forEach((post) =>
-          postItem(post, postsContainer)
-        );
+        posts_info.posts.forEach((post) => postItem(post, postsContainer));
         const { previousButton, pageInfo, nextButton } =
           PaginationButtons(postsContainer);
         currentPage = pageNumber;
@@ -317,16 +369,16 @@ function getCookie(name) {
   return cookieValue;
 }
 
-const ErrorMsg = (error) => {
-  const postButton = document.querySelector("#new-post-button");
+const ErrorMsg = (element, error) => {
+  // const postButton = document.querySelector("#new-post-button");
   const errorMsg = document.createElement("p");
   errorMsg.textContent = error;
   errorMsg.className = "error-msg";
 
-  postButton.insertAdjacentElement("afterend", errorMsg);
+  element.insertAdjacentElement("afterend", errorMsg);
   setTimeout(() => {
     errorMsg.remove();
-  }, 1500);
+  }, 2000);
 };
 
 const sendNewPost = (formData) => {
@@ -355,7 +407,7 @@ const sendNewPost = (formData) => {
       MainPage("all-posts");
     })
     .catch((error) => {
-      ErrorMsg(error);
+      ErrorMsg(formData, error);
     });
 };
 

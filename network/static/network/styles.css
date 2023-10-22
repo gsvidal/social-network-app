@@ -59,9 +59,18 @@ h1 {
   display: block;
   width: 100%;
   padding: 10px;
+  margin: 5px 0;
   border: 1px solid rgb(174, 174, 174);
   font-size: 1.4rem;
   border-radius: 5px;
+}
+
+.post-content--edit {
+  margin-top: 13px;
+}
+
+.post-item-content {
+  margin-top: 10px;
 }
 
 .post-content:focus {
@@ -93,7 +102,7 @@ h1 {
 }
 
 .button--edit {
-  width: 70px;
+  width: 75px;
   font-size: 1.3rem;
   margin: 5px 0;
   padding-bottom: 4px;
@@ -165,12 +174,15 @@ h1 {
 }
 
 .error-msg {
-  color: rgb(130, 0, 0);
-  padding: 3px 6px;
+  width: 330px;
+  padding: 3px 10px;
+  margin-top: 10px;
+  line-height: 25px;
   background-color: rgb(255, 166, 166);
+  color: rgb(130, 0, 0);
   border: 1px solid red;
   border-radius: 5px;
-  animation: error-fading 1.5s linear forwards;
+  animation: error-fading 2s linear forwards;
 }
 
 @keyframes error-fading {
@@ -227,7 +239,7 @@ h1 {
 .button-pagination-container {
   display: flex;
   align-items: center;
-  margin: 30px 0;
+  margin: 45px 0 15px;
 }
 
 .button-pagination {

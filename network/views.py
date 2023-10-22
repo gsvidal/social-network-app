@@ -24,22 +24,18 @@ def index(request):
 
 @login_required
 def new_post(request):
-    # Composing a new email must be via POST
-    if request.method != "POST":
-        return JsonResponse({"error": "POST request required."}, status=405)
-    
-    data = json.loads(request.body)
-    if data.get("content").strip() == "":
-        return JsonResponse({"error": "Post content must not be empty"}, status=400)
-    
-    print(f"data sent from front: {data}")
-    post = Post(
-        content = data.get("content"),
-        poster = request.user
-    )
-    post.save()
+    if request.method == "POST":
+        data = json.loads(request.body)
+        if data.get("content").strip() == "":
+            return JsonResponse({"error": "Post content must not be empty"}, status=400)
+        
+        post = Post(
+            content = data.get("content"),
+            poster = request.user
+        )
+        post.save()
 
-    return JsonResponse({"message": "Post created successfully."}, status=201)
+        return JsonResponse({"message": "Post created successfully."}, status=201)
 
 
 def posts(request, page, poster_id):
@@ -62,7 +58,6 @@ def posts(request, page, poster_id):
             posts = Post.objects.filter(poster__in=following_users)
 
         except ObjectDoesNotExist:
-            print("doesnt exist")
             posts = []
         
     elif page == "profile-page":
@@ -81,10 +76,6 @@ def posts(request, page, poster_id):
         page_posts = paginator.page(1)  # Handle out-of-range pages by returning the first page
 
     total_pages = paginator.num_pages
-    print(f"total pages:; {total_pages}")
-    print(f"has previous; {page_posts.has_previous()}")
-    print(f"has next; {page_posts.has_next()}")
-    # print(f"posts count:  {posts.count()}")
 
     post_data = []
     for post in page_posts:
@@ -96,7 +87,7 @@ def posts(request, page, poster_id):
             "poster": post.poster.username,  # Get the username of the poster
             "poster_id": post.poster.id,
             "likes": likes,  # Include the number of likes
-            
+            "is_user_own_post": post.poster == request.user
         })
     
     posts_info = {"posts": post_data, "total_pages": total_pages,
@@ -106,9 +97,7 @@ def posts(request, page, poster_id):
     return JsonResponse({'posts_info': posts_info}, status=200)
      
 def profile_page(request, poster_id):
-    print("before post")
     if request.method == "POST":
-        print("poistttttt")
         try:
             data = json.loads(request.body)
             action = data.get("action")
@@ -117,7 +106,6 @@ def profile_page(request, poster_id):
             followed = User.objects.get(pk=poster_id)
             
             if action == "follow":
-                print("following start")
                 follow = Follow(followed=followed, follower=follower)
                 follow.save()
                 is_following = True
@@ -158,7 +146,6 @@ def profile_page(request, poster_id):
         is_following = False
 
     user_posts_count = profile_user.posts.count()
-    print(f"is_auth user following this profile?: {is_following}")
 
     profile_data = {
         'username': profile_user.username,
@@ -170,13 +157,24 @@ def profile_page(request, poster_id):
         'is_user_auth': request.user.is_authenticated
         }
 
-    print(f"profile_data: {profile_data}")
-
     return JsonResponse({'profile_data': profile_data}, status=200)
+
+@login_required
+def edit_post(request, post_id):
+    if request.method == "PUT":
+        data = json.loads(request.body)
+        # print(f"data.newconetn: {data.get('new_content')}")
+        if data.get("new_content").strip() == "":
+            return JsonResponse({"error": "Post content must not be empty"}, status=400)
+        
+        post_to_edit = Post.objects.get(pk=post_id)
+        post_to_edit.content = data.get("new_content")
+        post_to_edit.save()
+        return JsonResponse({"message": "Post edited successfully."}, status=201)
+
 
 def login_view(request):
     if request.method == "POST":
-
         # Attempt to sign user in
         username = request.POST["username"]
         password = request.POST["password"]
