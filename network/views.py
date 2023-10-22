@@ -85,7 +85,6 @@ def posts(request, page, poster_id):
         is_post_liked = False
         if request.user.is_authenticated:
             is_post_liked = Like.objects.filter(liker=request.user, post=post).count() > 0
-            print(f"is liked? {is_post_liked}")
         post_data.append({ 
             "id": post.id,
             "content": post.content,
@@ -145,7 +144,6 @@ def profile_page(request, poster_id):
 
         try:
             follow = Follow.objects.get(followed=followed, follower=follower)
-            print(f"follow?: {follow}")
             is_following = True
         except Follow.DoesNotExist:
             is_following = False
@@ -170,7 +168,6 @@ def profile_page(request, poster_id):
 def edit_post(request, post_id):
     if request.method == "PUT":
         data = json.loads(request.body)
-        # print(f"data.newconetn: {data.get('new_content')}")
         if data.get("new_content").strip() == "":
             return JsonResponse({"error": "Post content must not be empty"}, status=400)
         
@@ -196,6 +193,16 @@ def like_post(request, post_id):
         except:
             return JsonResponse({"error": "Couldn't like this post, try again"}, status=400)
             
+
+@login_required
+def delete_post(request, post_id):
+    if request.method == "DELETE":
+        try:
+            post_to_delete = Post.objects.get(pk=post_id)
+            post_to_delete.delete()
+            return JsonResponse({"message": "Post deleted successfully."}, status=200)
+        except:
+            return JsonResponse({"error": "Couldn't delete this post, try again"}, status=400)
 
 
 def login_view(request):

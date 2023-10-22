@@ -16,4 +16,5 @@ urlpatterns = [
     path("api/profile/<int:poster_id>", views.profile_page, name="profile_page"),
     path("api/edit_post/<int:post_id>", views.edit_post, name="edit_post"),
     path("api/like_post/<int:post_id>", views.like_post, name="like_post"),
+    path("api/delete_post/<int:post_id>", views.delete_post, name="delete_post")
 ]

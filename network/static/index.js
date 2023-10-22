@@ -187,6 +187,46 @@ const saveEditPost = (content, postId, editButtonItem) => {
     });
 };
 
+const sendLiking = (likeIcon, action, postId) => {
+  const csrftoken = getCookie("csrftoken");
+
+  fetch(`/api/like_post/${postId}`, {
+    method: "PUT",
+    headers: {
+      "Content-Type": "application/json",
+      "X-CSRFToken": csrftoken, // Include the CSRF token in the headers
+    },
+    body: JSON.stringify({
+      action: action,
+    }),
+  })
+    .then((response) => {
+      if (!response.ok) {
+        return response.json().then((errorData) => {
+          throw new Error(errorData.error);
+        });
+      } else {
+        return response.json();
+      }
+    })
+    .then(({ post_likes }) => {
+      likeIcon.nextElementSibling.textContent = post_likes;
+      if (action === "like") {
+        likeIcon.classList.add("liked");
+      }
+      if (action === "unlike") {
+        likeIcon.classList.remove("liked");
+        likeIcon.classList.add("broken");
+        setTimeout(() => {
+          likeIcon.classList.remove("broken");
+        }, 500);
+      }
+    })
+    .catch((error) => {
+      ErrorMsg(likeIcon, error);
+    });
+};
+
 const postItem = (post, postsContainer) => {
   const postContainer = document.createElement("div");
   postContainer.className = "post-container";
@@ -203,6 +243,9 @@ const postItem = (post, postsContainer) => {
   postContainer.append(poster);
 
   if (post.is_user_own_post) {
+    const buttonsContainer = document.createElement("div");
+    buttonsContainer.className = "buttons-container";
+
     const editButton = document.createElement("button");
     editButton.textContent = "Edit post";
     editButton.className = "btn btn-outline-info button button--edit";
@@ -230,7 +273,47 @@ const postItem = (post, postsContainer) => {
       }
     });
 
-    postContainer.append(editButton);
+    const deleteButton = document.createElement("button");
+    deleteButton.textContent = "Delete post";
+    deleteButton.className = "btn btn-outline-danger button button--delete";
+
+    const deletePost = (element, postId) => {
+      const csrftoken = getCookie("csrftoken");
+
+      fetch(`/api/delete_post/${postId}`, {
+        method: "DELETE",
+        headers: {
+          "Content-Type": "application/json",
+          "X-CSRFToken": csrftoken, // Include the CSRF token in the headers
+        },
+      })
+        .then((response) => {
+          if (!response.ok) {
+            return response.json().then((errorData) => {
+              throw new Error(errorData.error);
+            });
+          } else {
+            return response.json();
+          }
+        })
+        .then(() => {
+          const postItem = element.parentElement.parentElement
+          postItem.classList.add("post-deleted");
+          setTimeout(() => {
+            postItem.remove()
+          }, 1500)
+        })
+        .catch((error) => {
+          ErrorMsg(element, error);
+        });
+    };
+
+    deleteButton.addEventListener("click", () => {
+      deletePost(deleteButton, post.id);
+    });
+
+    buttonsContainer.append(editButton, deleteButton);
+    postContainer.append(buttonsContainer);
   }
 
   const postContent = document.createElement("p");
@@ -238,6 +321,7 @@ const postItem = (post, postsContainer) => {
   postContent.textContent = post.content;
 
   const postDate = document.createElement("p");
+  postDate.className = "post-date"
   const postFormattedDate = new Date(post.date);
 
   const options = {
@@ -256,46 +340,6 @@ const postItem = (post, postsContainer) => {
 
   const likeIcon = document.createElement("span");
   likeIcon.className = `like-icon ${post.is_liked_by_auth_user ? "liked" : ""}`;
-
-  const sendLiking = (likeIcon, action, postId) => {
-    const csrftoken = getCookie("csrftoken");
-
-    fetch(`/api/like_post/${postId}`, {
-      method: "PUT",
-      headers: {
-        "Content-Type": "application/json",
-        "X-CSRFToken": csrftoken, // Include the CSRF token in the headers
-      },
-      body: JSON.stringify({
-        action: action,
-      }),
-    })
-      .then((response) => {
-        if (!response.ok) {
-          return response.json().then((errorData) => {
-            throw new Error(errorData.error);
-          });
-        } else {
-          return response.json();
-        }
-      })
-      .then(({ post_likes }) => {
-        likeIcon.nextElementSibling.textContent = post_likes;
-        if (action === "like") {
-          likeIcon.classList.add("liked");
-        }
-        if (action === "unlike") {
-          likeIcon.classList.remove("liked");
-          likeIcon.classList.add("broken");
-          setTimeout(() => {
-            likeIcon.classList.remove("broken");
-          }, 500);
-        }
-      })
-      .catch((error) => {
-        ErrorMsg(likeIcon, error);
-      });
-  };
 
   likeIcon.addEventListener("click", async () => {
     const { is_authenticated } = await isUserAuth();
