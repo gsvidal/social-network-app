@@ -45,6 +45,12 @@ def posts(request, page, poster_id):
     if page == "all-posts":
         posts = Post.objects.all().order_by('-date')
 
+    if page == "profile-page":
+        try:
+            posts = User.objects.get(pk=poster_id).posts.order_by('-date')
+        except:
+            return render(request, '404.html')
+
     if request.user.is_authenticated:
         if page == "following":
             try:
@@ -62,13 +68,9 @@ def posts(request, page, poster_id):
             except ObjectDoesNotExist:
                 posts = []
             
-        elif page == "profile-page":
-            try:
-                posts = User.objects.get(pk=poster_id).posts.order_by('-date')
-            except:
-                return render(request, '404.html')
-        elif page != "all-posts": 
-            return JsonResponse({'error': "The page you're looking for, doesn't exist"}, status=404)
+        
+    if page != "all-posts" and page != "profile-page" and page != "following": 
+        return JsonResponse({'error': "The page you're looking for, doesn't exist"}, status=404)
     
     paginator = Paginator(posts, posts_per_page)
 
@@ -152,11 +154,9 @@ def profile_page(request, poster_id):
 
     user_posts_count = profile_user.posts.count()
 
-    user_avatar = User.objects.get(pk=request.user.id)
-    if user_avatar.avatar:
-        avatar_url = user_avatar.avatar.url
+    if profile_user.avatar:
+        avatar_url = profile_user.avatar.url
         has_avatar = True
-        print(f"avtar_url: {avatar_url}")
     else:
         has_avatar = False
         avatar_url = ""

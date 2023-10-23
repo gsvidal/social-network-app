@@ -191,10 +191,12 @@ const ProfilePage = (profile_data, posterId) => {
         userAvatarImg.src = avatar_url;
       })
       .catch((error) => {
-        console.log(error.message)
+        console.log(error.message);
         ErrorMsg(
           element.parentElement,
-          error.message === "Failed to fetch" ? "Couldn't upload the image. Try again." : error.message
+          error.message === "Failed to fetch"
+            ? "Couldn't upload the image. Try again."
+            : error.message
         );
       });
   }
@@ -366,6 +368,7 @@ const postItem = (post, postsContainer) => {
         editButtonItem.textContent = "Save post";
 
         const postContentToEdit = document.createElement("textarea");
+
         postContentToEdit.className = "post-content post-content--edit";
         console.log(
           editButtonItem.parentElement.nextElementSibling.textContent
@@ -430,6 +433,7 @@ const postItem = (post, postsContainer) => {
 
   const postContent = document.createElement("p");
   postContent.className = "post-item-content";
+
   postContent.textContent = post.content;
 
   const postDate = document.createElement("p");
@@ -622,6 +626,7 @@ const NewPostForm = () => {
 
   const newPostTextarea = document.createElement("textarea");
   newPostTextarea.setAttribute("name", "content");
+  newPostTextarea.setAttribute("placeholder", "Share your thoughts here...");
   newPostTextarea.className = "post-content";
 
   const newPostSubmitInput = document.createElement("input");

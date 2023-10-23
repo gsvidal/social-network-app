@@ -3,11 +3,15 @@ html {
 }
 
 body {
-  font-size: 1.8rem;
+  font-size: 1.6rem;
+  color: white;
 }
 
 .body {
   margin: 20px;
+  position: relative;
+  z-index: 1;
+  color: white;
 }
 
 h1 {
@@ -15,15 +19,34 @@ h1 {
   margin-bottom: 15px;
 }
 
+a {
+  color: rgba(255, 255, 255, 0.654);
+}
+
+a:hover {
+  color: white;
+}
+
 .navbar {
+  position: relative;
+  left: 0px;
+  width: 100vw;
+  z-index: 1;
   padding: 20px;
   padding-left: 30px;
+  color: white;
+  background-color: rgba(44, 44, 47, 0.734) !important;
 }
 
 .navbar-brand {
-  font-size: 2.8rem;
+  font-size: 3.2rem;
   margin-right: 30px;
   margin-bottom: 6px;
+  font-weight: 700;
+  background-image: linear-gradient(to top, rgb(120, 237, 252), #4a50ff);
+  background-clip: text;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
 }
 
 @media screen and (min-width: 400px) {
@@ -32,27 +55,37 @@ h1 {
   }
 }
 
+@media screen and (min-width: 1000px) {
+  body {
+    width: 1000px;
+    margin: 0 auto;
+  }
+  .navbar {
+    left: calc(-50vw + 500px);
+    /* width: 100vw; */
+   padding-left: calc(50vw - 475px);
+  }
+}
+
 .post-container,
 #new-post-form {
   padding: 20px;
-  margin: 10px 0;
-  border: 1px solid rgb(218, 218, 255);
+  margin: 15px 0;
+  border: 1px solid rgba(218, 218, 255, 0.285);
   border-radius: 5px;
-  box-shadow: rgb(169, 169, 233) 0px 2px 5px -1px,
-    rgba(0, 0, 0, 0.3) 0px 1px 3px -1px;
-  background-color: white;
+  background: rgba(255, 255, 255, 0.2);
+  backdrop-filter: blur(10px); /* Apply a blur to create the frosted effect */
 }
 
 .post-container:hover {
-  background-color: rgb(250, 250, 255);
+  backdrop-filter: blur(20px); /* Apply a blur to create the frosted effect */
+  background: rgba(255, 255, 255, 0.15);
 }
 
 #new-post-form {
-  box-shadow: rgba(17, 17, 26, 0.1) 0px 4px 16px,
-    rgba(186, 186, 255, 0.322) 0px 8px 24px,
-    rgba(186, 186, 255, 0.322) 0px 16px 56px;
+  box-shadow: 0 20px 40px rgba(70, 52, 177, 0.553);
   margin-bottom: 20px;
-  border-color: rgb(234, 234, 234);
+  border-color: rgba(255, 255, 255, 0.446);
 }
 
 .post-content {
@@ -63,6 +96,21 @@ h1 {
   border: 1px solid rgb(174, 174, 174);
   font-size: 1.4rem;
   border-radius: 5px;
+  color: white;
+  background: rgba(0, 0, 0, 0.464);
+}
+
+.navbar-toggler {
+  border-color: rgba(255, 255, 255, 0.654);
+}
+
+.navbar-toggler-icon {
+  background-image: url("../icons/menu.svg");
+  filter: invert(80%);
+}
+
+.post-content::placeholder {
+  color: rgb(137, 137, 137);
 }
 
 .post-content--edit {
@@ -104,11 +152,11 @@ h1 {
 
 .post-date {
   font-size: 1.2rem;
-  color: rgb(91, 91, 91);
+  color: rgb(145, 145, 145);
 }
 
 .poster {
-  color: rgb(91, 91, 255);
+  color: rgb(135, 135, 255);
   font-weight: 500;
   cursor: pointer;
 }
@@ -206,8 +254,20 @@ h1 {
   cursor: pointer;
 }
 
+.nav-link {
+  margin: 0 6px;
+}
+
 #nav-link-username {
   margin: 0;
+  margin-left: 6px;
+  color: rgb(23, 162, 184);
+}
+
+#nav-link-username:hover {
+  margin: 0;
+  margin-left: 6px;
+  color: rgb(54, 206, 230);
 }
 
 .error-msg {
@@ -245,15 +305,15 @@ h1 {
   padding-bottom: 20px;
 }
 .user-data-container {
+  position: relative;
+  top: 0px;
+  left: 150px;
   display: flex;
   flex-direction: column;
   margin-bottom: 25px;
 }
 
 .user-data {
-  position: relative;
-  top: 0px;
-  left: 150px;
   display: flex;
 }
 
@@ -263,10 +323,10 @@ h1 {
 
 .user-avatar-img {
   position: absolute;
-  top: 150px;
-  left: 30px;
+  top: 0px;
+  left: -135px;
   border-radius: 50%;
-  border: 1px solid rgb(232, 230, 255);
+  outline: 2px solid #00b5d1;
 }
 
 .button--profile {
@@ -283,6 +343,7 @@ h1 {
   display: flex;
   width: 60px;
   margin: 10px;
+  padding-left: 10px;
   font-size: 1.4rem;
 }
 
@@ -290,6 +351,7 @@ h1 {
   background-color: rgb(175, 175, 175);
   border-color: rgb(168, 168, 168);
   cursor: default;
+  opacity: 1;
 }
 
 .page-info {
@@ -303,7 +365,7 @@ h1 {
   display: inline-block;
   position: relative;
   top: 4px;
-  left: -4px;
+  left: -2px;
   width: 10px;
   height: 14px;
   background: url("../icons/chevron-left.svg") center/cover no-repeat;
@@ -315,17 +377,18 @@ h1 {
 }
 
 .input--avatar {
+  position: relative;
   display: none;
 }
 
 .label--avatar {
-  position: relative;
+  position: absolute;
   display: flex;
   justify-content: space-around;
   align-items: center;
   width: 55px;
-  top: 100px;
-  left: 65px;
+  top: 80px;
+  left: -70px;
   cursor: pointer;
   padding: 2px 4px;
   color: white;
@@ -344,4 +407,102 @@ h1 {
   height: 15px;
   background: url("../icons/edit.svg") center/cover no-repeat;
   filter: invert(100%);
+}
+
+@keyframes cube {
+  from {
+    transform: scale(0) rotate(0deg) translate(-50%, -50%);
+    opacity: 1;
+  }
+  to {
+    transform: scale(20) rotate(960deg) translate(-50%, -50%);
+    opacity: 0;
+  }
+}
+
+.background {
+  position: fixed;
+  width: 100vw;
+  height: 100vh;
+  top: 0;
+  left: 0;
+  margin: 0;
+  padding: 0;
+  background-color: black;
+  overflow: hidden;
+}
+.background li {
+  position: absolute;
+  top: 80vh;
+  left: 45vw;
+  width: 10px;
+  height: 10px;
+  border: solid 1px #8487d4;
+  color: transparent;
+  transform-origin: top left;
+  transform: scale(0) rotate(0deg) translate(-50%, -50%);
+  animation: cube 22s ease-in forwards infinite;
+}
+.background li:nth-child(0) {
+  animation-delay: 0s;
+  left: 47vw;
+  top: 39vh;
+  border-color: #a1a5ff;
+}
+
+.background li:nth-child(1) {
+  animation-delay: 2s;
+  left: 53vw;
+  top: 92vh;
+}
+
+.background li:nth-child(2) {
+  animation-delay: 4s;
+  left: 74vw;
+  top: 73vh;
+}
+
+.background li:nth-child(3) {
+  animation-delay: 6s;
+  left: 30vw;
+  top: 22vh;
+}
+
+.background li:nth-child(4) {
+  animation-delay: 8s;
+  left: 9vw;
+  top: 60vh;
+  border-color: #a1a5ff;
+}
+
+.background li:nth-child(5) {
+  animation-delay: 10s;
+  left: 87vw;
+  top: 53vh;
+}
+
+.background li:nth-child(6) {
+  animation-delay: 12s;
+  left: 28vw;
+  top: 84vh;
+}
+
+.background li:nth-child(7) {
+  animation-delay: 14s;
+  left: 93vw;
+  top: 9vh;
+  border-color: #a1a5ff;
+}
+
+.background li:nth-child(8) {
+  animation-delay: 16s;
+  left: 10vw;
+  top: 49vh;
+}
+
+.background li:nth-child(9) {
+  animation-delay: 18s;
+  left: 61vw;
+  top: 14vh;
+  border-color: #a1a5ff;
 }
