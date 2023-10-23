@@ -88,10 +88,70 @@ const ProfilePage = (profile_data, posterId) => {
 
   const userAvatar = document.createElement("img");
   userAvatar.className = "user-avatar";
-  userAvatar.setAttribute("src", "");
+  userAvatar.setAttribute(
+    "src",
+    "https://upload.wikimedia.org/wikipedia/commons/8/89/Portrait_Placeholder.png"
+  );
   userAvatar.setAttribute("width", "100");
   userAvatar.setAttribute("height", "100");
   userAvatar.setAttribute("alt", "User Avatar");
+
+  const uploadAvatarInput = document.createElement("input");
+  uploadAvatarInput.setAttribute("type", "file");
+  uploadAvatarInput.setAttribute("id", "avatar");
+  uploadAvatarInput.setAttribute("name", "avatar");
+  uploadAvatarInput.setAttribute("accept", "image/*");
+  uploadAvatarInput.className = "input--avatar";
+
+  const uploadLabel = document.createElement("label");
+  uploadLabel.setAttribute("for", "avatar");
+  uploadLabel.className = "label--avatar";
+
+  const uploadText = document.createElement("span");
+  uploadText.textContent = "edit";
+  uploadText.className = "label-text--avatar";
+
+  const uploadIcon = document.createElement("span");
+  uploadIcon.className = "icon--edit-avatar";
+
+  uploadLabel.append(uploadIcon, uploadText);
+
+  // Add an event listener to the file input
+  uploadAvatarInput.addEventListener("change", handleFileSelect);
+
+  // Function to handle the file selection
+  function handleFileSelect(event) {
+    const selectedFile = event.target.files[0];
+
+    if (selectedFile) {
+      // Check if the selected file is an image
+      if (selectedFile.type.startsWith("image/")) {
+        // Check if the file size is within the allowed limit (5MB)
+        if (selectedFile.size <= 5 * 1024 * 1024) {
+          const reader = new FileReader();
+
+          reader.onload = function (e) {
+            // Set the src attribute of the avatar image to the data URL of the selected image
+            userAvatar.src = e.target.result;
+            // TODO: save in DB
+            console.log("loaded");
+            // saveAvatar()
+          };
+
+          // Read the selected image as a data URL
+          reader.readAsDataURL(selectedFile);
+        } else {
+          alert("Please select an image file that is 5MB or smaller.");
+          // Clear the file input to allow selecting a different file
+          uploadAvatarInput.value = "";
+        }
+      } else {
+        alert("Please select an image file.");
+        // Clear the file input to allow selecting a different file
+        uploadAvatarInput.value = "";
+      }
+    }
+  }
 
   const userDataContainer = document.createElement("section");
   userDataContainer.className = "user-data-container";
@@ -143,7 +203,13 @@ const ProfilePage = (profile_data, posterId) => {
 
   userFollowData.append(postCount, followers, followings);
 
-  userDataContainer.append(userAvatar, userMainData, userFollowData);
+  userDataContainer.append(
+    userAvatar,
+    uploadAvatarInput,
+    uploadLabel,
+    userMainData,
+    userFollowData
+  );
 
   document.querySelector(".profile-page").append(userDataContainer);
   const postsContainer = document.createElement("section");
@@ -297,11 +363,11 @@ const postItem = (post, postsContainer) => {
           }
         })
         .then(() => {
-          const postItem = element.parentElement.parentElement
+          const postItem = element.parentElement.parentElement;
           postItem.classList.add("post-deleted");
           setTimeout(() => {
-            postItem.remove()
-          }, 1500)
+            postItem.remove();
+          }, 1500);
         })
         .catch((error) => {
           ErrorMsg(element, error);
@@ -321,7 +387,7 @@ const postItem = (post, postsContainer) => {
   postContent.textContent = post.content;
 
   const postDate = document.createElement("p");
-  postDate.className = "post-date"
+  postDate.className = "post-date";
   const postFormattedDate = new Date(post.date);
 
   const options = {
