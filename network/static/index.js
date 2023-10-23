@@ -86,75 +86,118 @@ const ProfilePage = (profile_data, posterId) => {
   document.querySelector(".main-page").style.display = "none";
   document.querySelector(".profile-page").style.display = "block";
 
-  const userAvatar = document.createElement("img");
-  userAvatar.className = "user-avatar";
-  userAvatar.setAttribute(
+  const userDataContainer = document.createElement("section");
+  userDataContainer.className = "user-data-container";
+
+  const userAvatarImg = document.createElement("img");
+  userAvatarImg.className = "user-avatar-img";
+  userAvatarImg.setAttribute(
     "src",
-    "https://upload.wikimedia.org/wikipedia/commons/8/89/Portrait_Placeholder.png"
+    profile_data.has_avatar
+      ? profile_data.avatar_url
+      : "https://upload.wikimedia.org/wikipedia/commons/8/89/Portrait_Placeholder.png"
   );
-  userAvatar.setAttribute("width", "100");
-  userAvatar.setAttribute("height", "100");
-  userAvatar.setAttribute("alt", "User Avatar");
+  userAvatarImg.setAttribute("width", "100");
+  userAvatarImg.setAttribute("height", "100");
+  userAvatarImg.setAttribute("alt", "User Avatar");
 
-  const uploadAvatarInput = document.createElement("input");
-  uploadAvatarInput.setAttribute("type", "file");
-  uploadAvatarInput.setAttribute("id", "avatar");
-  uploadAvatarInput.setAttribute("name", "avatar");
-  uploadAvatarInput.setAttribute("accept", "image/*");
-  uploadAvatarInput.className = "input--avatar";
+  userDataContainer.append(userAvatarImg);
 
-  const uploadLabel = document.createElement("label");
-  uploadLabel.setAttribute("for", "avatar");
-  uploadLabel.className = "label--avatar";
+  if (profile_data.auth_user_is_poster) {
+    const uploadAvatarInput = document.createElement("input");
+    uploadAvatarInput.setAttribute("type", "file");
+    uploadAvatarInput.setAttribute("id", "avatar");
+    uploadAvatarInput.setAttribute("name", "avatar");
+    uploadAvatarInput.setAttribute("accept", "image/*");
+    uploadAvatarInput.className = "input--avatar";
 
-  const uploadText = document.createElement("span");
-  uploadText.textContent = "edit";
-  uploadText.className = "label-text--avatar";
+    const uploadLabel = document.createElement("label");
+    uploadLabel.setAttribute("for", "avatar");
+    uploadLabel.className = "label--avatar";
 
-  const uploadIcon = document.createElement("span");
-  uploadIcon.className = "icon--edit-avatar";
+    const uploadText = document.createElement("span");
+    uploadText.textContent = "edit";
+    uploadText.className = "label-text--avatar";
 
-  uploadLabel.append(uploadIcon, uploadText);
+    const uploadIcon = document.createElement("span");
+    uploadIcon.className = "icon--edit-avatar";
 
-  // Add an event listener to the file input
-  uploadAvatarInput.addEventListener("change", handleFileSelect);
+    uploadLabel.append(uploadIcon, uploadText);
 
-  // Function to handle the file selection
-  function handleFileSelect(event) {
-    const selectedFile = event.target.files[0];
+    // Add an event listener to the file input
+    uploadAvatarInput.addEventListener("change", handleFileSelect);
 
-    if (selectedFile) {
-      // Check if the selected file is an image
-      if (selectedFile.type.startsWith("image/")) {
-        // Check if the file size is within the allowed limit (5MB)
-        if (selectedFile.size <= 5 * 1024 * 1024) {
-          const reader = new FileReader();
+    // Function to handle the file selection
+    function handleFileSelect(event) {
+      const selectedFile = event.target.files[0];
 
-          reader.onload = function (e) {
-            // Set the src attribute of the avatar image to the data URL of the selected image
-            userAvatar.src = e.target.result;
-            // TODO: save in DB
-            console.log("loaded");
-            // saveAvatar()
-          };
+      if (selectedFile) {
+        // Check if the selected file is an image
+        if (selectedFile.type.startsWith("image/")) {
+          // Check if the file size is within the allowed limit (5MB)
+          if (selectedFile.size <= 5 * 1024 * 1024) {
+            const reader = new FileReader();
 
-          // Read the selected image as a data URL
-          reader.readAsDataURL(selectedFile);
+            reader.onload = function (e) {
+              // Set the src attribute of the avatar image to the data URL of the selected image
+              uploadAvatar(userAvatarImg, selectedFile);
+            };
+
+            // Read the selected image as a data URL
+            reader.readAsDataURL(selectedFile);
+          } else {
+            alert("Please select an image file that is 5MB or smaller.");
+            // Clear the file input to allow selecting a different file
+            uploadAvatarInput.value = "";
+          }
         } else {
-          alert("Please select an image file that is 5MB or smaller.");
+          alert("Please select an image file.");
           // Clear the file input to allow selecting a different file
           uploadAvatarInput.value = "";
         }
-      } else {
-        alert("Please select an image file.");
-        // Clear the file input to allow selecting a different file
-        uploadAvatarInput.value = "";
       }
     }
+
+    userDataContainer.append(uploadAvatarInput, uploadLabel);
   }
 
-  const userDataContainer = document.createElement("section");
-  userDataContainer.className = "user-data-container";
+  function uploadAvatar(element, file) {
+    const csrftoken = getCookie("csrftoken");
+
+    const formData = new FormData();
+    formData.append("avatar", file);
+    console.log(formData);
+
+    fetch("/api/upload_avatar", {
+      method: "POST",
+      headers: {
+        "X-CSRFToken": csrftoken, // Include the CSRF token in the headers
+      },
+      body: formData,
+    })
+      .then((response) => {
+        if (!response.ok) {
+          return response.json().then((errorData) => {
+            throw new Error(errorData.error);
+          });
+        } else {
+          return response.json();
+        }
+      })
+
+      .then(({ avatar_url }) => {
+        console.log(avatar_url);
+        const userAvatarImg = document.querySelector(".user-avatar-img");
+        userAvatarImg.src = avatar_url;
+      })
+      .catch((error) => {
+        console.log(error.message)
+        ErrorMsg(
+          element.parentElement,
+          error.message === "Failed to fetch" ? "Couldn't upload the image. Try again." : error.message
+        );
+      });
+  }
 
   const userMainData = document.createElement("div");
   userMainData.className = "user-data user-data--main";
@@ -203,13 +246,7 @@ const ProfilePage = (profile_data, posterId) => {
 
   userFollowData.append(postCount, followers, followings);
 
-  userDataContainer.append(
-    userAvatar,
-    uploadAvatarInput,
-    uploadLabel,
-    userMainData,
-    userFollowData
-  );
+  userDataContainer.append(userMainData, userFollowData);
 
   document.querySelector(".profile-page").append(userDataContainer);
   const postsContainer = document.createElement("section");
@@ -245,11 +282,14 @@ const saveEditPost = (content, postId, editButtonItem) => {
       const postContent = document.createElement("p");
       postContent.className = "post-item-content";
       postContent.textContent = content;
-      editButtonItem.nextElementSibling.remove();
-      editButtonItem.insertAdjacentElement("afterend", postContent);
+      editButtonItem.parentElement.nextElementSibling.remove();
+      editButtonItem.parentElement.insertAdjacentElement(
+        "afterend",
+        postContent
+      );
     })
     .catch((error) => {
-      ErrorMsg(editButtonItem, error);
+      ErrorMsg(editButtonItem.parentElement, error);
     });
 };
 
@@ -327,15 +367,21 @@ const postItem = (post, postsContainer) => {
 
         const postContentToEdit = document.createElement("textarea");
         postContentToEdit.className = "post-content post-content--edit";
+        console.log(
+          editButtonItem.parentElement.nextElementSibling.textContent
+        );
         postContentToEdit.textContent =
-          editButtonItem.nextElementSibling.textContent;
+          editButtonItem.parentElement.nextElementSibling.textContent;
 
         postContentToEdit.addEventListener("input", (event) => {
           newContent = event.target.value;
         });
 
-        editButtonItem.nextElementSibling.remove();
-        editButton.insertAdjacentElement("afterend", postContentToEdit);
+        editButtonItem.parentElement.nextElementSibling.remove();
+        editButton.parentElement.insertAdjacentElement(
+          "afterend",
+          postContentToEdit
+        );
       }
     });
 

@@ -1,5 +1,7 @@
 
 from django.urls import path
+from django.conf import settings
+from django.conf.urls.static import static
 
 from . import views
 
@@ -16,5 +18,10 @@ urlpatterns = [
     path("api/profile/<int:poster_id>", views.profile_page, name="profile_page"),
     path("api/edit_post/<int:post_id>", views.edit_post, name="edit_post"),
     path("api/like_post/<int:post_id>", views.like_post, name="like_post"),
-    path("api/delete_post/<int:post_id>", views.delete_post, name="delete_post")
+    path("api/delete_post/<int:post_id>", views.delete_post, name="delete_post"),
+    path("api/upload_avatar", views.upload_avatar, name="upload_avatar")
 ]
+
+# Serve media files during development
+if settings.DEBUG:
+    urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)

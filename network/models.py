@@ -6,6 +6,7 @@ from django.utils import timezone
 
 class User(AbstractUser):
     id = models.AutoField(primary_key=True)
+    avatar = models.ImageField(upload_to='avatars/')
     pass
 
 

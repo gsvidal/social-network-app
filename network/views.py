@@ -152,6 +152,15 @@ def profile_page(request, poster_id):
 
     user_posts_count = profile_user.posts.count()
 
+    user_avatar = User.objects.get(pk=request.user.id)
+    if user_avatar.avatar:
+        avatar_url = user_avatar.avatar.url
+        has_avatar = True
+        print(f"avtar_url: {avatar_url}")
+    else:
+        has_avatar = False
+        avatar_url = ""
+
     profile_data = {
         'username': profile_user.username,
         'posts_count': user_posts_count,
@@ -159,7 +168,9 @@ def profile_page(request, poster_id):
         'followings': followings, 
         'auth_user_is_poster': auth_user_is_poster, 
         'is_following': is_following,
-        'is_user_auth': request.user.is_authenticated
+        'is_user_auth': request.user.is_authenticated,
+        'has_avatar': has_avatar,
+        'avatar_url': avatar_url
         }
 
     return JsonResponse({'profile_data': profile_data}, status=200)
@@ -203,6 +214,25 @@ def delete_post(request, post_id):
             return JsonResponse({"message": "Post deleted successfully."}, status=200)
         except:
             return JsonResponse({"error": "Couldn't delete this post, try again"}, status=400)
+        
+@login_required
+def upload_avatar(request):
+    if request.method == 'POST':
+        avatar = request.FILES.get('avatar')
+        if avatar:
+            user = request.user
+            try:
+                user_avatar = User.objects.get(pk=user.id)
+                user_avatar.avatar = avatar
+                user_avatar.save()
+                avatar_url = user_avatar.avatar.url  # Get the URL of the uploaded image
+                print(f"avatar url: {avatar_url}")
+                return JsonResponse({'message': 'Avatar uploaded successfully', 'avatar_url': avatar_url})
+            except ObjectDoesNotExist:
+                return JsonResponse({'error': 'User not found'}, status=400)
+        else:
+            return JsonResponse({'error': 'No avatar file provided'}, status=400)
+    return JsonResponse({'error': 'Invalid request method'}, status=405)
 
 
 def login_view(request):
